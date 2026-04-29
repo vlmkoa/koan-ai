@@ -1,0 +1,8 @@
+.env.local
+.next/
+node_modules/
+evals/results/
+*.pyc
+__pycache__/
+tsconfig.tsbuildinfo
+.claude/settings.local.json

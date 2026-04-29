@@ -1,0 +1,194 @@
+@import url('https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=DM+Mono:wght@300;400&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0a0a08;
+  color: #c8c4b0;
+  font-family: 'IM Fell English', serif;
+  min-height: 100vh;
+  cursor: default;
+}
+
+.grain {
+  position: fixed; inset: 0; pointer-events: none; z-index: 100;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.35;
+}
+
+.layout {
+  max-width: 680px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0 24px;
+}
+
+header {
+  padding: 48px 0 32px;
+  border-bottom: 1px solid #1e1e1a;
+}
+
+.title {
+  font-size: 13px;
+  font-family: 'DM Mono', monospace;
+  font-weight: 300;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #5a5a4e;
+}
+
+.subtitle {
+  font-size: 28px;
+  font-style: italic;
+  color: #c8c4b0;
+  margin-top: 8px;
+  line-height: 1.2;
+}
+
+.messages {
+  flex: 1;
+  padding: 40px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 0;
+}
+
+.empty-text {
+  font-style: italic;
+  color: #2e2e28;
+  font-size: 20px;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.msg {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: fadein 0.4s ease;
+}
+
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.msg-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.msg.user .msg-label { color: #3a3a30; }
+.msg.assistant .msg-label { color: #5a5040; }
+
+.msg-text {
+  font-size: 18px;
+  line-height: 1.75;
+}
+
+.msg.user .msg-text {
+  color: #7a7a68;
+}
+
+.msg.assistant .msg-text {
+  color: #c8c4b0;
+}
+
+.cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: #c8a060;
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.input-area {
+  border-top: 1px solid #1e1e1a;
+  padding: 24px 0 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.input-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #2e2e28;
+  color: #c8c4b0;
+  font-family: 'IM Fell English', serif;
+  font-size: 18px;
+  line-height: 1.5;
+  padding: 8px 0;
+  resize: none;
+  outline: none;
+  min-height: 40px;
+  max-height: 200px;
+  transition: border-color 0.2s;
+}
+
+textarea::placeholder {
+  color: #2e2e28;
+  font-style: italic;
+}
+
+textarea:focus {
+  border-bottom-color: #5a5040;
+}
+
+button {
+  background: none;
+  border: 1px solid #2e2e28;
+  color: #5a5a4e;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  height: 36px;
+}
+
+button:hover:not(:disabled) {
+  border-color: #5a5040;
+  color: #c8a060;
+}
+
+button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.hint {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: #2a2a24;
+  letter-spacing: 0.1em;
+}
