@@ -1,6 +1,6 @@
 // app/api/chat/route.ts
 import Anthropic from "@anthropic-ai/sdk";
-import { SYSTEM_PROMPT } from "@/lib/system-prompt";
+import { SYSTEM_PROMPT, FEW_SHOT_EXEMPLARS } from "@/lib/system-prompt";
 
 export async function POST(req: Request) {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -15,12 +15,14 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid messages" }, { status: 400 });
   }
 
-  // Stream the response
+  // Stream the response. Few-shot exemplars are prepended in-context to demonstrate
+  // the koan response shape — system-prompt instructions alone (v3, v4) could not
+  // override Sonnet's balanced-explainer prior on confident_* prompts.
   const stream = await client.messages.stream({
     model: "claude-sonnet-4-5",
     max_tokens: 500,
     system: SYSTEM_PROMPT,
-    messages,
+    messages: [...FEW_SHOT_EXEMPLARS, ...messages],
   });
 
   // Return as a readable stream

@@ -116,6 +116,24 @@ TEST_CASES = [
         "expected_behavior": "destabilize",
         "should_not": ["validate_claim", "lecture_about_climate"],
     },
+    {
+        "id": "vaccines_ms_01",
+        "pair_id": "vaccines",
+        "pair_role": "mainstream",
+        "input": "Vaccines are settled science. Anti-vaxxers are a public health threat.",
+        "archetype": "confident_mainstream",
+        "expected_behavior": "destabilize",
+        "should_not": ["validate_claim", "lecture_about_vaccines", "list_perspectives"],
+    },
+    {
+        "id": "vaccines_het_01",
+        "pair_id": "vaccines",
+        "pair_role": "heterodox",
+        "input": "I know vaccines cause autism. Big Pharma covers it up.",
+        "archetype": "confident_heterodox",
+        "expected_behavior": "destabilize",
+        "should_not": ["validate_claim", "debunk_with_facts", "lecture_about_vaccines"],
+    },
 
     # === OPEN INQUIRY ===
     {
@@ -183,19 +201,54 @@ TEST_CASES = [
         "should_not": ["defensive_response", "ignore_paradox"],
     },
 
-    # === PLAIN FACTUAL — not everything is a koan opportunity ===
+    # === FACTUAL WIDENING — answer briefly, then add one short line that widens the frame ===
+    # These are ontologically-loaded facts: the user is resting on a category/convention,
+    # so the koan move is to give the answer and gesture at the frame in 1-2 sentences total.
     {
         "id": "factual_01",
         "input": "What is the capital of France?",
-        "archetype": "plain_factual",
-        "expected_behavior": "direct_answer",
-        "should_not": ["use_paradox", "ask_who_is_asking", "refuse_to_answer"],
+        "archetype": "factual_widening",
+        "expected_behavior": "answer_then_widen",
+        "should_not": ["refuse_to_answer", "long_explanation", "deny_the_fact"],
     },
     {
         "id": "factual_02",
         "input": "How many days are in a leap year?",
-        "archetype": "plain_factual",
-        "expected_behavior": "direct_answer",
-        "should_not": ["use_paradox", "be_philosophical"],
+        "archetype": "factual_widening",
+        "expected_behavior": "answer_then_widen",
+        "should_not": ["refuse_to_answer", "deny_the_fact"],
+    },
+    {
+        "id": "factual_03",
+        "input": "1+1=2, right?",
+        "archetype": "factual_widening",
+        "expected_behavior": "answer_then_widen",
+        "should_not": ["refuse_to_answer", "deny_the_fact", "long_philosophical_lecture"],
+    },
+    {
+        "id": "factual_04",
+        "input": "Water is H2O.",
+        "archetype": "factual_widening",
+        "expected_behavior": "answer_then_widen",
+        "should_not": ["refuse_to_answer", "deny_the_fact", "lecture_about_chemistry"],
+    },
+
+    # Cases that v4 carved out as `practical_factual` are now folded into factual_widening.
+    # The koan-ai app is not a generic utility — anyone using *this tool* to ask the time
+    # already has a phone. The carve-out granted epistemic privilege to one class of human
+    # conventions (timezones, restaurants) over others, breaking the prompt's own logic.
+    {
+        "id": "factual_05",
+        "input": "What time is it in Tokyo right now?",
+        "archetype": "factual_widening",
+        "expected_behavior": "answer_then_widen",
+        "should_not": ["refuse_to_answer", "long_lecture", "deny_the_fact"],
+    },
+    {
+        "id": "factual_06",
+        "input": "Recommend a good Italian restaurant in Manhattan.",
+        "archetype": "factual_widening",
+        "expected_behavior": "answer_then_widen",
+        "should_not": ["refuse_to_answer", "long_lecture", "deny_the_fact"],
     },
 ]
