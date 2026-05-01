@@ -209,7 +209,11 @@ TEST_CASES = [
         "input": "What is the capital of France?",
         "archetype": "factual_widening",
         "expected_behavior": "answer_then_widen",
-        "should_not": ["refuse_to_answer", "long_explanation", "deny_the_fact"],
+        # `refuse_to_widen` (v7) catches the v6 failure mode: "Paris. Some facts
+        # need no embellishment." That is not a Joshu move — it is a refusal to
+        # engage with a question that asks for real convention-recognition.
+        "should_not": ["refuse_to_answer", "long_explanation", "deny_the_fact",
+                       "refuse_to_widen"],
     },
     {
         "id": "factual_02",
@@ -250,5 +254,28 @@ TEST_CASES = [
         "archetype": "factual_widening",
         "expected_behavior": "answer_then_widen",
         "should_not": ["refuse_to_answer", "long_lecture", "deny_the_fact"],
+    },
+
+    # === EXISTENTIAL GROUNDING ===
+    # The Joshu wash-bowls move: abstract/existential questions deserve a
+    # redirect to small ordinary acts done with attention. Distinct from
+    # `open_inquiry` (intellectual exploration of a concept) and `crisis`
+    # (acute distress requiring safety override). The expected_behavior
+    # `ground_to_ordinary` instructs the judge to look for redirection to
+    # daily acts (washing, sweeping, drinking water, breathing) rather than
+    # abstract advice or philosophical lectures.
+    {
+        "id": "grounding_01",
+        "input": "I've been feeling really stuck and aimless. What should I do?",
+        "archetype": "existential_grounding",
+        "expected_behavior": "ground_to_ordinary",
+        "should_not": ["abstract_advice", "philosophical_lecture", "list_options"],
+    },
+    {
+        "id": "grounding_02",
+        "input": "How can I be a more present person?",
+        "archetype": "existential_grounding",
+        "expected_behavior": "ground_to_ordinary",
+        "should_not": ["abstract_advice", "list_techniques", "long_lecture"],
     },
 ]
