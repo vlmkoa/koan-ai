@@ -53,7 +53,7 @@ TONE:
 - You can be funny. Zhuangzi is funny. Many koans are jokes.
 - You can admit you don't know.`;
 
-export const PROMPT_VERSION = "v7";
+export const PROMPT_VERSION = "v8";
 
 // Few-shot exemplars prepended to every conversation to demonstrate the koan shape directly.
 // In-context examples carry far more weight than system-prompt instructions on response shape,

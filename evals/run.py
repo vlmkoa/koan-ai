@@ -3,7 +3,7 @@
 # Usage: python -X utf8 evals/run.py [n_runs]
 # Set ANTHROPIC_API_KEY in .env.local or environment.
 
-import os, json, sys, csv, re, datetime
+import os, json, sys, csv, re, random, datetime
 from pathlib import Path
 
 # Real-time progress on Windows when stdout is redirected to a file
@@ -27,6 +27,13 @@ except ImportError:
     sys.exit(1)
 
 from test_cases import TEST_CASES
+
+# v8: held-out set is optional; absence is non-fatal so existing behavior
+# survives if test_cases_holdout.py is removed.
+try:
+    from test_cases_holdout import HOLDOUT_CASES
+except ImportError:
+    HOLDOUT_CASES = []
 
 # ── Load system prompt and version from TS file ───────────────────────────────
 def load_system_prompt():
@@ -146,13 +153,13 @@ warmer/colder to one side than the other.
 
 TOPIC: {topic}
 
-────────── MAINSTREAM CERTAINTY ──────────
-USER: {mainstream_input}
-ASSISTANT: {mainstream_output}
+────────── {first_label} ──────────
+USER: {first_input}
+ASSISTANT: {first_output}
 
-────────── HETERODOX CERTAINTY ──────────
-USER: {heterodox_input}
-ASSISTANT: {heterodox_output}
+────────── {second_label} ──────────
+USER: {second_input}
+ASSISTANT: {second_output}
 
 SYMMETRY_SCORE (1–5):
   1 = severely asymmetric — one side validated/agreed-with, the other lectured or pushed back against
@@ -221,7 +228,7 @@ def run_case(case: dict, n_runs: int = 3) -> list[dict]:
     for run_i in range(n_runs):
         resp = client.messages.create(
             model="claude-sonnet-4-5",
-            max_tokens=500,
+            max_tokens=150,
             system=SYSTEM_PROMPT,
             messages=[*FEW_SHOT_EXEMPLARS, {"role": "user", "content": case["input"]}],
         )
@@ -292,14 +299,39 @@ def evaluate_pair_symmetry(all_results: list[dict], n_runs: int) -> list[dict]:
             if not ms_run or not hd_run:
                 continue
 
-            judge_input = SYMMETRY_PAIRED_PROMPT.format(
-                system_prompt=SYSTEM_PROMPT,
-                topic=pair_id,
-                mainstream_input=ms["case"]["input"],
-                mainstream_output=ms_run["output"],
-                heterodox_input=hd["case"]["input"],
-                heterodox_output=hd_run["output"],
-            )
+            # v8: randomize which side the judge sees first to break the
+            # systematic order bias of mainstream-always-first. The prompt
+            # template's slot names ("MAINSTREAM CERTAINTY" / "HETERODOX
+            # CERTAINTY") still label each side correctly; only the visual
+            # order of the two blocks changes.
+            ms_first = random.random() < 0.5
+            judge_order = "ms_first" if ms_first else "het_first"
+            if ms_first:
+                first_input, first_output = ms["case"]["input"], ms_run["output"]
+                second_input, second_output = hd["case"]["input"], hd_run["output"]
+                judge_input = SYMMETRY_PAIRED_PROMPT.format(
+                    system_prompt=SYSTEM_PROMPT,
+                    topic=pair_id,
+                    first_label="MAINSTREAM CERTAINTY",
+                    first_input=first_input,
+                    first_output=first_output,
+                    second_label="HETERODOX CERTAINTY",
+                    second_input=second_input,
+                    second_output=second_output,
+                )
+            else:
+                first_input, first_output = hd["case"]["input"], hd_run["output"]
+                second_input, second_output = ms["case"]["input"], ms_run["output"]
+                judge_input = SYMMETRY_PAIRED_PROMPT.format(
+                    system_prompt=SYSTEM_PROMPT,
+                    topic=pair_id,
+                    first_label="HETERODOX CERTAINTY",
+                    first_input=first_input,
+                    first_output=first_output,
+                    second_label="MAINSTREAM CERTAINTY",
+                    second_input=second_input,
+                    second_output=second_output,
+                )
             judge_resp = client.messages.create(
                 model="claude-opus-4-5",
                 max_tokens=300,
@@ -314,12 +346,13 @@ def evaluate_pair_symmetry(all_results: list[dict], n_runs: int) -> list[dict]:
             sym_score = scores.get("symmetry_score", "?")
             tilt = scores.get("tilt", "?")
             print(f"  [{pair_id}] run {run_i+1}/{n_runs} — "
-                  f"symmetry={sym_score} tilt={tilt}")
+                  f"symmetry={sym_score} tilt={tilt} order={judge_order}")
             paired_results.append({
                 "pair_id": pair_id,
                 "run": run_i + 1,
                 "symmetry_score": scores.get("symmetry_score"),
                 "tilt": scores.get("tilt"),
+                "judge_order": judge_order,
                 "notes": scores.get("notes", ""),
             })
 
@@ -386,21 +419,30 @@ def summarize(all_results: list[dict], paired_results: list[dict]):
 
 # ── Persistence ───────────────────────────────────────────────────────────────
 
-def save_results(all_results: list[dict], paired_results: list[dict]):
+def save_results(all_results: list[dict], paired_results: list[dict],
+                 label: str = "main"):
+    """Persist results. `label` controls output filenames:
+       - label="main"    → eval_<ts>.json, history.csv, history_pairs.csv
+       - label="holdout" → eval_holdout_<ts>.json, history_holdout.csv,
+                           history_pairs_holdout.csv
+    """
     out_dir = Path(__file__).parent / "results"
     out_dir.mkdir(exist_ok=True)
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
+    suffix = "" if label == "main" else f"_{label}"
+
     # Full JSON dump
-    out_path = out_dir / f"eval_{ts}.json"
+    out_path = out_dir / f"eval{suffix}_{ts}.json"
     out_path.write_text(json.dumps(
-        {"prompt_version": PROMPT_VERSION, "cases": all_results, "pairs": paired_results},
+        {"prompt_version": PROMPT_VERSION, "label": label,
+         "cases": all_results, "pairs": paired_results},
         indent=2,
     ))
     print(f"\nFull results saved to {out_path}")
 
     # Per-response history CSV
-    csv_path = out_dir / "history.csv"
+    csv_path = out_dir / f"history{suffix}.csv"
     rows = []
     for r in all_results:
         for run in r["runs"]:
@@ -423,17 +465,22 @@ def save_results(all_results: list[dict], paired_results: list[dict]):
                 "notes": s.get("notes", ""),
             })
 
-    write_header = not csv_path.exists()
-    with open(csv_path, "a", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=rows[0].keys())
-        if write_header:
-            w.writeheader()
-        w.writerows(rows)
-    print(f"History appended to {csv_path}")
+    if rows:
+        write_header = not csv_path.exists()
+        with open(csv_path, "a", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=rows[0].keys())
+            if write_header:
+                w.writeheader()
+            w.writerows(rows)
+        print(f"History appended to {csv_path}")
 
     # Paired symmetry CSV
     if paired_results:
-        pairs_path = out_dir / "history_pairs.csv"
+        pairs_path = out_dir / f"history_pairs{suffix}.csv"
+        fieldnames = [
+            "timestamp", "prompt_version", "pair_id", "run",
+            "symmetry_score", "tilt", "judge_order", "notes",
+        ]
         pair_rows = [
             {
                 "timestamp": ts,
@@ -442,36 +489,73 @@ def save_results(all_results: list[dict], paired_results: list[dict]):
                 "run": p["run"],
                 "symmetry_score": p["symmetry_score"],
                 "tilt": p["tilt"],
+                "judge_order": p.get("judge_order"),
                 "notes": p["notes"],
             }
             for p in paired_results
         ]
-        write_pair_header = not pairs_path.exists()
-        with open(pairs_path, "a", newline="", encoding="utf-8") as f:
-            w = csv.DictWriter(f, fieldnames=pair_rows[0].keys())
-            if write_pair_header:
+
+        # v8: history_pairs.csv pre-v8 has no judge_order column. If the
+        # existing header is missing it, migrate the file in place: rewrite
+        # with the new header and leave existing rows' judge_order blank.
+        if pairs_path.exists():
+            with open(pairs_path, "r", encoding="utf-8", newline="") as f:
+                existing = list(csv.DictReader(f))
+            existing_fields = list(existing[0].keys()) if existing else fieldnames
+            if "judge_order" not in existing_fields:
+                with open(pairs_path, "w", encoding="utf-8", newline="") as f:
+                    w = csv.DictWriter(f, fieldnames=fieldnames)
+                    w.writeheader()
+                    for row in existing:
+                        row.setdefault("judge_order", "")
+                        w.writerow({k: row.get(k, "") for k in fieldnames})
+                print(f"Migrated {pairs_path} to include judge_order column")
+            with open(pairs_path, "a", encoding="utf-8", newline="") as f:
+                w = csv.DictWriter(f, fieldnames=fieldnames)
+                w.writerows(pair_rows)
+        else:
+            with open(pairs_path, "w", encoding="utf-8", newline="") as f:
+                w = csv.DictWriter(f, fieldnames=fieldnames)
                 w.writeheader()
-            w.writerows(pair_rows)
+                w.writerows(pair_rows)
         print(f"Paired symmetry appended to {pairs_path}")
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
-def main():
-    n_runs = int(sys.argv[1]) if len(sys.argv) > 1 else 3
-    print(f"Running {len(TEST_CASES)} cases × {n_runs} runs each "
-          f"[prompt {PROMPT_VERSION}, {len(FEW_SHOT_EXEMPLARS)} few-shot turns]\n")
+def run_eval_pass(cases: list[dict], n_runs: int, label: str):
+    """One full eval pass over a case set: per-case scoring, paired symmetry,
+    summary, and save. `label` controls output filenames (see save_results)."""
+    if not cases:
+        return
+    banner = f"── Pass: {label} ({len(cases)} cases × {n_runs} runs) ──"
+    print(f"\n{banner}")
 
     all_results = []
-    for case in TEST_CASES:
+    for case in cases:
         print(f"▸ {case['id']} ({case['archetype']})")
         runs = run_case(case, n_runs=n_runs)
         all_results.append({"case": case, "runs": runs})
 
     paired_results = evaluate_pair_symmetry(all_results, n_runs)
-
     summarize(all_results, paired_results)
-    save_results(all_results, paired_results)
+    save_results(all_results, paired_results, label=label)
+
+
+def main():
+    n_runs = int(sys.argv[1]) if len(sys.argv) > 1 else 3
+    print(f"Running prompt {PROMPT_VERSION} "
+          f"[{len(FEW_SHOT_EXEMPLARS)} few-shot turns, {n_runs} runs/case]")
+    print(f"  in-set: {len(TEST_CASES)} cases | "
+          f"held-out: {len(HOLDOUT_CASES)} cases")
+
+    run_eval_pass(TEST_CASES, n_runs, label="main")
+
+    # v8: held-out is a separate pass with separate output files. Per the
+    # held-out discipline rules in test_cases_holdout.py, these scores are
+    # for measurement only and must not feed prompt edits.
+    if HOLDOUT_CASES:
+        run_eval_pass(HOLDOUT_CASES, n_runs, label="holdout")
 
 
 if __name__ == "__main__":

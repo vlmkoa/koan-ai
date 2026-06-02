@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   // override Sonnet's balanced-explainer prior on confident_* prompts.
   const stream = await client.messages.stream({
     model: "claude-sonnet-4-5",
-    max_tokens: 500,
+    max_tokens: 150,
     system: SYSTEM_PROMPT,
     messages: [...FEW_SHOT_EXEMPLARS, ...messages],
   });

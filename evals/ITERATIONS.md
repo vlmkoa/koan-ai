@@ -14,8 +14,9 @@ CSVs are data. This is the lab notebook.
 | v5 | 4.25 / 4.17        | 4.48 / 4.10          | 0% / 4% / 30                     | 12 of 18 (+2 balanced, +4 heterodox) |
 | v6 | 4.38 / 4.21        | 4.95 / 4.57          | 0% / 0% / 38                     | 11 of 18 (+4 balanced, +3 heterodox) |
 | v7 | 4.79 / 4.71        | 4.95 / 4.81          | 0% / 0% / 35                     | 12 of 18 (+4 balanced, +2 heterodox) — avg score 2.61→3.44 |
+| v8 | (v7 prompt, methodology only) | | | held-out + symmetry order randomization + max_tokens 500→150 |
 
-v3→v4 is essentially flat. v4→v5 is the breakthrough. v6 is incremental polish that mostly held. v7 produced four wins from one targeted fix.
+v3→v4 is essentially flat. v4→v5 is the breakthrough. v6 is incremental polish that mostly held. v7 produced four wins from one targeted fix. v8 changes nothing in the prompt — it adds a held-out eval set and randomizes paired-symmetry judge order so future deltas can be trusted as more than hill-climbing on a fixed set.
 
 ---
 
@@ -275,6 +276,38 @@ The remaining failure modes are now well-isolated:
 - RAG with archaic koan corpus: still wrong. Performative mysticism risk.
 - Full RLHF: still unnecessary. The case I cited as needing it (vaccines) just resolved through prompt+few-shot.
 - DPO/SFT against vaccines_het_01: not needed. Case is now 5/5/5.
+
+---
+
+## v8 — measurement, not prompt
+
+**Setup.** v8 is the first version with no change to `SYSTEM_PROMPT` or `FEW_SHOT_EXEMPLARS`. The `PROMPT_VERSION` string bumps to `"v8"` so the CSV history can distinguish runs, but the assistant context sent to Sonnet is byte-identical to v7.
+
+**Why no prompt change.** Every v3→v7 delta was scored on the same 31 author-curated cases in `test_cases.py`. The marginal score gains in v7 (+0.83 average paired symmetry, +0.55 craft on heterodox) are now smaller than the measurement uncertainty available against an unchanging metric. 4th-perspective.md said this in different words. Hill-climbing further on the fixed set produces noise indistinguishable from progress. v8's job is to fix measurement first, then resume prompt iteration at v9 with held-out scores as ground truth.
+
+**What v8 ships.**
+
+1. **Held-out evaluation set (`evals/test_cases_holdout.py`).** Seven cases covering confident_mainstream/heterodox (paired on `psychedelics_holdout`, a fresh pair_id), factual_widening (tomato fruit/vegetable), existential_grounding (disconnection), adversarial (binary-verdict demand), safety_factual (dog-bite tetanus), and crisis (intrusive self-harm thoughts). Topics chosen to avoid all in-set test cases, the literal phrases in the system prompt, and the few-shot exemplar topics. Scored separately and written to `history_holdout.csv` and `history_pairs_holdout.csv`. The discipline: held-out failures must NOT inform prompt edits — if they do, the case is contaminated and must move to `test_cases.py`.
+2. **Symmetry pair-order randomization.** The paired-symmetry judge previously saw mainstream first every time. v8 randomizes per-run with a coin flip, recorded in a new `judge_order` column on `history_pairs.csv` (existing rows back-filled empty on first v8 write). The judge prompt's slot labels still correctly identify each side; only visual order changes. If the v3-v7 "12-of-18 mainstream-tilted" signal moves materially under randomization, the climate-as-hard-ceiling reading was an order artifact.
+3. **`max_tokens` lowered from 500 to 150** in both `app/api/chat/route.ts` and `evals/run.py`. v7 word_median is 28-35 across archetypes; the 89-word `heterodox_03` r1 outlier was the only material excess. 150 tokens (~110 words) leaves real headroom over the 75-word target while mechanically capping the balanced-explainer regression.
+
+**Why this isn't an exemplar addition.** Cross-topic few-shot transfer is real (v7 vaccines result is the evidence), so a 7th exemplar on a strongly-RLHF-trained heterodox topic would probably lift climate. But adding it before the held-out baseline exists is another iteration of the same epistemic error v8 is built to interrupt. Pre-registered candidates for v9 (do not implement until v8 results land):
+
+1. **Output prefilling experiment.** Anthropic API supports an `assistant`-role prefix in the messages array. A single-character prefill (em-dash, space-then-question-mark) mechanically forces the first-token constraint that v3-v4's instruction-mode could not, and is the cleanest known fix for `adversarial_01`'s "I don't have previous instructions" leak and any residual "I'd push back" template. Test on a small sample first; back off if responses feel templated.
+2. **One additional few-shot exemplar — young-earth creationism, mid-position.** Right shape, right RLHF intensity (comparable to climate, not meme-coded the way flat earth is), distinct from in-set test set. Place at exemplar position 4 or 5 to avoid recency-anchoring; re-evaluate Tokyo's position at the same time.
+3. **Temperature ablation as measurement.** Run v7 prompt at temp 0.3, 0.7, 1.0 on the same cases and compare. If the `heterodox_03` 89-word outlier resolves at lower temp, ship temp; otherwise, the variance is prompt-design and another exemplar is the lever.
+4. **Controlled ablation on the LIMITS-section literal phrases** ("the moon landing was faked / vaccines cause autism / crystals heal"). Initial v8 instinct said remove them; the prior is they do load-bearing work telling the model "these specific sentences are koan material, not safety material" — v7's vaccines breakthrough happened *with* them present. Run v9 with literal phrases replaced by abstract descriptions and compare. Default expectation: regression on vaccines and moon-landing.
+
+**Out of scope, but not indefinitely deferrable.** 4th-perspective.md raised that the bot's koan response on vaccines and a thoughtful anti-vaxxer's rhetorical move converge on the same surface text. This is a product question (whether non-validation is the right stance on health misinformation), not a prompt-iteration question or a measurement question. v8 is not the place. v9+ should not let the iteration cadence become a way of indefinitely deferring it.
+
+**Verification on v8 run.**
+
+- `history_holdout.csv` per-archetype means within ~0.3 of `history.csv` means → v7 generalizes; license to push v9.
+- `history_holdout.csv` materially below in-set (>0.5 on confident_*) → v7 over-fit; v9's job is diagnosis, not iteration.
+- `judge_order` distribution roughly 50/50 across pairs/runs → randomization actually fired.
+- Tilt distributions filtered by `judge_order` — if direction flips when heterodox is shown first, the v3-v7 tilt signal was partly an order artifact.
+- Spot-read held-out responses by hand for the koan voice, separately from the score table.
+- Confirm `crisis` (~80 words) and `safety_factual` (~63 words) responses still complete cleanly under `max_tokens=150`; if any clip, raise to 200.
 
 ---
 
