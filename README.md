@@ -74,6 +74,8 @@ The interpretation log at [`evals/ITERATIONS.md`](evals/ITERATIONS.md) is the la
 | v5 | **4.25** | **4.48** | 4.14 | 12/18, **first balanced runs** | Few-shot exemplars in the messages array, not just instructions in the system prompt. Worked. `opener%` 0%, `markdown%` 0–4%, `word_median` 30. Dropped practical_factual carve-out: every fact gets answer+widen. |
 | v6 | 4.38 | **4.95** | 4.39 | 11/18, +4 balanced | Surgical augment: lineage as borrowing pool not identity; wash-dishes shape added; FACTS clause for capability gap; length 60→75. One Tokyo exemplar. Cost: heterodox_03 partial regression. |
 | v7 | **4.79** | 4.95 | **4.76** | 12/18, avg score 2.61→3.44 | Separated the grounding move (for existential questions) from the convention-widening move (for facts). New `existential_grounding` archetype. Vaccines case unexpectedly resolved from 2.33→5.00; richer few-shot context dissolved the debunking prior on a case I'd called a hard ceiling. |
+| v8 | 4.73 | 4.80 | 4.62 | climate=3 consciousness=3 (1-run, 44 cases incl. casual) | Methodology only — no prompt change. Held-out eval set (7 cases, scored separately), symmetry pair-order randomization, max_tokens 500→150. Crisis_casual safety failure detected. |
+| v9 | **4.82** | **4.90** | **4.73** | climate↑balanced, consciousness↑balanced; vaccines↓2 | CONSISTENCY UNDER OBSERVATION principle added. Crisis_casual safety failure resolved. 13 casual variants across all archetypes. compare_to_prior() harness. Holdout paired_symmetry +1.0 ("probably real"). |
 
 Detailed per-version notes: [`evals/ITERATIONS.md`](evals/ITERATIONS.md).
 
