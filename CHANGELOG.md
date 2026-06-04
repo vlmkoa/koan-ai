@@ -59,7 +59,7 @@ The three files that matter:
 
 **Results:** Heterodox behavior 4.25 / craft 4.17. Mainstream 4.48 / craft 4.10. Forbidden opener rate: 83% → 0%. Markdown: 100% → 0%. Word median: 202 → 30.
 
-**Key finding:** System-prompt rules describe behavior; in-context examples shift the prior. They are not interchangeable, and the prior shift is far more powerful for response shape.
+**Key finding:** The few-shot exemplars were the lever. After four versions of failing to fix response shape through system-prompt rules, three in-context example turns did it. The distinction that explains it: system-prompt rules only *describe* the behavior you want, while in-context examples actually *shift the model's prior* — and for response shape, shifting the prior is far more powerful. The two are not interchangeable.
 
 ---
 
