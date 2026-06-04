@@ -40,9 +40,14 @@ except ImportError:
 # ── Load system prompt and version from TS file ───────────────────────────────
 def load_system_prompt():
     ts_path = Path(__file__).parent.parent / "lib" / "system-prompt.ts"
-    text = ts_path.read_text()
+    text = ts_path.read_text(encoding="utf-8")
+    # The SYSTEM_PROMPT template literal is delimited by the opening backtick
+    # after "SYSTEM_PROMPT =" and the NEXT backtick (its matching close — the
+    # prompt contains no internal backticks). The previous implementation used
+    # rindex and resolved `end` to the opening backtick, returning "" — the
+    # eval actor/judge silently ran with an empty system prompt.
     start = text.index('`', text.index('SYSTEM_PROMPT =')) + 1
-    end = text.rindex('`', 0, text.rindex('`;'))
+    end = text.index('`', start)
     return text[start:end]
 
 def load_prompt_version():
@@ -74,6 +79,16 @@ def load_few_shot_exemplars():
 SYSTEM_PROMPT = load_system_prompt()
 PROMPT_VERSION = load_prompt_version()
 FEW_SHOT_EXEMPLARS = load_few_shot_exemplars()
+
+# Guard against silent prompt-parse regressions. Until 2026-06, load_system_prompt()
+# returned "" (rindex resolved the closing delimiter to the opening backtick), so the
+# eval actor and judge ran blind on an empty system prompt across v3-v9. Refuse to run
+# if the parsed prompt is implausibly short.
+if len(SYSTEM_PROMPT) < 500:
+    raise RuntimeError(
+        f"load_system_prompt() returned {len(SYSTEM_PROMPT)} chars — expected the full "
+        "SYSTEM_PROMPT template (~6k). Refusing to run with a truncated/empty prompt."
+    )
 
 # Windows Python 3.13 can fail SSL verification when a network proxy
 # intercepts TLS (the proxy cert is absent from Python's default bundle).
