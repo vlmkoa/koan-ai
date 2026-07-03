@@ -4,6 +4,16 @@ A brief introduction to the project and a version-by-version summary of every pr
 
 For detailed per-version analysis (hypotheses, surprising results, verbatim response examples), see [`evals/ITERATIONS.md`](evals/ITERATIONS.md).
 
+> **⚠ CORRECTION (2026-06).** The eval scores in the version entries below (v3–v9) were
+> produced by a harness that fed the actor an **empty system prompt** (`load_system_prompt()`
+> returned `""`; fixed in `3edf7fe`). Only the few-shot exemplars reached the model;
+> production was unaffected. This inverts the headline lesson: re-validation with the prompt
+> actually delivered shows the **system prompt alone (v3, no exemplars) already produces the
+> koan behavior** — exemplars refine facts/grounding/symmetry, they don't enable the behavior.
+> The "few-shot exemplars were the lever" framing is a bug artifact. Entries below are kept
+> as-written for the record; see `evals/ITERATIONS.md` → "CORRECTION (2026-06)" for the
+> corrected trajectory. CUO block removed as inert; `crisis_casual` is the real open gap.
+
 ---
 
 ## What this project is

@@ -63,6 +63,17 @@ These are not interchangeable. Refusing to widen on a factual question
 in mystic clothing. Joshu's wash-bowls works because the student just ate.
 
 ## Prompt Version History
+
+> **⚠ CORRECTION (2026-06).** The eval numbers behind this table (v3–v9) were produced with
+> a broken harness that sent an **empty system prompt** to the actor — `load_system_prompt()`
+> returned `""`. Only the few-shot exemplars reached the model; production was never affected.
+> Fixed in `3edf7fe`. The "prompt-level constraints failed (v4) / few-shot is what works (v5)"
+> conclusions below are **artifacts of that bug**. Corrected finding: the system prompt alone
+> (v3, zero exemplars) already produces the koan behavior; exemplars only refine facts,
+> grounding, and symmetry consistency. Full re-validation in `evals/ITERATIONS.md`
+> ("CORRECTION (2026-06)"). CUO block removed as inert (`ddece4b`); `crisis_casual` is the
+> real open safety gap.
+
 | Version | Notes |
 |---------|-------|
 | v1 | Baseline — not yet evaluated |
@@ -77,6 +88,12 @@ in mystic clothing. Joshu's wash-bowls works because the student just ate.
 ## Evaluation Harness
 
 The eval suite in `evals/` is a first-class part of the project — it exists specifically for iterating on `lib/system-prompt.ts`.
+
+> **Harness note (2026-06):** `load_system_prompt()` in `run.py` now parses the template
+> literal correctly and asserts the parsed prompt is ≥500 chars (it silently returned `""`
+> for v3–v9). If you ever see the guard raise, the `SYSTEM_PROMPT` template delimiters
+> changed — fix the parser, don't remove the guard. All CSV scores before `3edf7fe` are
+> empty-prompt data, archived to `evals/results/*_prePromptFix_buggy.csv`.
 
 - **`evals/test_cases.py`** — 31 test cases across 9 archetypes: `confident_mainstream`, `confident_heterodox`, `open_inquiry`, `safety_factual`, `crisis`, `adversarial`, `adversarial_clever`, `factual_widening`, `existential_grounding`. Twelve cases carry `pair_id`/`pair_role` fields linking them into 6 matched mainstream/heterodox topic pairs (astrology, consciousness, religion, alt_medicine, climate, vaccines). `factual_widening` covers any factual query (capitals, math, chemistry, time, restaurants) with answer-then-widen behavior expected — the koan stance treats every category as a human convention. `existential_grounding` (added v7) covers abstract/existential questions where the koan move is the wash-bowls redirect to ordinary acts.
 - **`evals/run.py`** — runs each case N times with Sonnet, scores with an Opus judge on 5 dimensions (BEHAVIOR_MATCH, NON_VALIDATION, SAFETY, CRAFT, AVOIDED_FAILURES). After all cases run, runs a separate paired-symmetry pass that sends both sides of each pair to the judge simultaneously.

@@ -65,6 +65,13 @@ The interpretation log at [`evals/ITERATIONS.md`](evals/ITERATIONS.md) is the la
 
 ## Prompt evolution
 
+> **⚠ CORRECTION (2026-06).** The scores in this table were measured by a harness that sent
+> the actor an **empty system prompt** (eval-only bug, fixed in `3edf7fe`; production always
+> used the full prompt). Corrected re-validation shows the system prompt alone already
+> produces the koan behavior — few-shot exemplars refine rather than enable it. Treat the
+> numbers below as historical/invalid; see [`evals/ITERATIONS.md`](evals/ITERATIONS.md)
+> → "CORRECTION (2026-06)" for the corrected story.
+
 | Version | Heterodox | Mainstream | Craft (avg) | Mainstream-tilted | Key change |
 |---|---|---|---|---|---|
 | v1 | — | — | — | — | Baseline. Not evaluated. |
