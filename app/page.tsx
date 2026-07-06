@@ -45,6 +45,11 @@ export default function Home() {
         body: JSON.stringify({ messages: newMessages }),
       });
 
+      if (!res.ok) {
+        // Error responses are JSON, not koan text — don't render them as the
+        // mirror's reply.
+        throw new Error(await res.text().catch(() => "request failed"));
+      }
       if (!res.body) throw new Error("No body");
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -60,6 +65,14 @@ export default function Home() {
           return updated;
         });
       }
+      // Flush any buffered partial multibyte character (em-dashes are 3 bytes,
+      // and the mirror emits them constantly).
+      text += decoder.decode();
+      setMessages((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { role: "assistant", content: text };
+        return updated;
+      });
     } catch (e) {
       console.error(e);
       setMessages((prev) => {
