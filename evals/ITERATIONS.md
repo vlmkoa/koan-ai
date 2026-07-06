@@ -108,6 +108,41 @@ measured with the prompt actually present.
 
 ---
 
+## Harness robustness (2026-07): exemplar parser fix, partial saves, baseline selection
+
+Code-review pass on the harness (no prompt change, no score reinterpretation). Four changes
+that affect how future runs behave:
+
+1. **`load_few_shot_exemplars()` fixed and guarded.** Two bugs in the same family as the
+   empty-prompt disaster: (a) a failed regex parse silently returned `[]` — the eval would
+   have run with zero exemplars while production prepends all 12; it now raises, same as the
+   `SYSTEM_PROMPT` guard. (b) The `unicode_escape` round-trip corrupted non-ASCII: the Tokyo
+   exemplar's em-dash reached the eval actor as mojibake (`â\x80\x94`) in **every run to date,
+   including the corrected 2026-06 sweep**, while production saw clean text. Fixed via
+   `json.loads`; a C1-control canary guard prevents recurrence. *Measurement note:* fixing
+   this slightly changes the eval actor's context (converging toward production). One
+   3-char difference in 1 of 12 exemplar turns — expected effect ≈ nil, but re-anchor the
+   v9 baseline before trusting the next cross-version comparison.
+2. **Partial saves.** A mid-pass failure (credits, SSL, Ctrl-C) now writes completed cases to
+   `eval_*_PARTIAL.json` before re-raising, and `save_results` runs *before* `summarize` so a
+   display-layer crash can't discard paid data. Partial results never go to the history CSVs,
+   where incomplete case coverage would skew per-version means. (Two full passes were lost
+   this way pre-fix.)
+3. **`compare_to_prior()` baseline selection.** Was "previous version in CSV first-appearance
+   order" — not semantic after the out-of-order 2026-06 sweep (a v10 run would have compared
+   against v8; a v9 re-run got no comparison at all). Now: highest plain numeric version below
+   the current one; ablation versions (`v9-noCUO`) are never auto-selected; `--compare-to`
+   overrides. Also documented: the SEM verdict is anticonservative (pooled per-response scores
+   treated as independent) — read per-case deltas before believing "probably real".
+4. **Smaller:** `must_contain_concept` is now actually checked (advisory `concept_hit` CSV
+   column + loud miss warning; NOT injected into the judge prompt, which would change judge
+   measurement conditions mid-history). TLS-verification bypass is opt-in via
+   `KOAN_EVAL_INSECURE_SSL=1` instead of unconditional. Actor/judge models are named
+   constants. Judge-consistency probes reference `test_cases.py` by id instead of verbatim
+   copies.
+
+---
+
 ## v1 — baseline
 
 Not evaluated. The starting point before the eval harness existed.
