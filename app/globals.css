@@ -192,3 +192,14 @@ button:disabled {
   color: #2a2a24;
   letter-spacing: 0.1em;
 }
+
+/* Public-launch disclosure: the CRISIS carve-out only catches explicit
+   phrasing (crisis_casual_01 fails in every prompt version), so the UI
+   itself must carry the resource. Slightly brighter than .hint — it has
+   to be legible to matter. */
+.crisis-note {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: #4a4a3e;
+  letter-spacing: 0.1em;
+}

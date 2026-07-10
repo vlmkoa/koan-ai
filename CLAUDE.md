@@ -19,8 +19,8 @@ npm run eval
 # or: python -X utf8 evals/run.py
 # or: python -X utf8 evals/run.py 1   # single run per case
 
-# Deploy
-npx vercel
+# Deploy — Vercel GitHub integration auto-deploys main on push
+git push
 ```
 
 Requires `ANTHROPIC_API_KEY` in `.env.local`. No linting is configured.

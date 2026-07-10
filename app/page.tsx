@@ -146,6 +146,9 @@ export default function Home() {
             </button>
           </div>
           <div className="hint">enter to send · shift+enter for new line</div>
+          <div className="crisis-note">
+            a philosophical toy, not support — if you&apos;re struggling, call or text 988
+          </div>
         </div>
       </div>
     </>
